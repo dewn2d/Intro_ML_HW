@@ -26,55 +26,65 @@ class1 = pd.DataFrame(data1, columns = B)
 class2 = pd.DataFrame(data2, columns = B)
 class3 = pd.DataFrame(data3, columns = B)
 
+"""
+ClsSet:
+    a class that holds a fetures data and prior probablity
+    
+    data: the data set
+    cov_mat: the covariance matrix of the class
+    prior: the prior probablilty
+    mn: means of each class featrue
+"""
 class ClsSet:
     data = None
+    cov_mat = None
+    mns = None
     prior = 0
     
     def __init__(self, x, y):
         self.data = x
         self.prior = y
         
-set1 = ClsSet(class1, 0.6)
-set2 = ClsSet(class1, 0.2)
-set3 = ClsSet(class1, 0.2)
-
-"""
-import scipy.io as spio
-mat = spio.loadmat('data_class3.mat', squeeze_me=True)
-a = mat["Data"] # array
-df = pd.DataFrame(a)
-"""
-
-def cls_mean(clsSet): 
-    mns = []
-    ct=0
-    for col in clsSet.data.columns:
-        #print(cls)
-        mean = 0
-        for i in range(0, len(clsSet.data.index)):
-            mean += clsSet.data[col][i]
-        mns.append(round(mean/len(clsSet.data.index),4))
-        ct+=1     
+    def cls_mean(self, clsSet): 
+        mns = []
+        ct=0
+        for col in self.data.columns:
+            #print(cls)
+            mean = 0
+            for i in range(0, len(self.data.index)):
+                mean += self.data[col][i]
+            mns.append(round(mean/len(self.data.index),4))
+            ct+=1     
         
-    return np.array(mns)
+        self.mns = np.array(mns)
     
-"""
-get_cov_mat:
-    computes the convariance matrix of a class
-"""
-def get_cov_mat(clsSet):     
-    arr_set = clsSet.data.iloc[:,:].values
-    r, c = arr_set.shape
-    one = np.ones(shape = [r,1])
-    dev = arr_set - np.dot(np.dot(one,one.T),arr_set)*(1/r)
-    return np.dot(dev.T,dev)/r
+    """
+    get_cov_mat:
+        computes the convariance matrix of a class
+    """
+    def get_cov_mat(self, clsSet):     
+        arr_set = self.data.iloc[:,:].values
+        r, c = arr_set.shape
+        one = np.ones(shape = [r,1])
+        dev = arr_set - np.dot(np.dot(one,one.T),arr_set)*(1/r)
+        self.cov_mat = np.dot(dev.T,dev)/r
 
-cov_mat1 = get_cov_mat(set1)
-mn = cls_mean(set1)
 
-set1.data.mean(axis =0)
-set1.data.var(axis =0)
-set1.data.cov()
+def get_mahala(x, y, cov, d):
+    S_inv = np.linalg.inv(cov)
+    a = np.dot((x-y).T,S_inv)
+    b = np.dot(a, (x-y))
+    return b
+    
+def discrim_funct(x,cov,u,Pw,d):
+    
+    g = (-1/2)*get_mahala(x,u,cov,d)
+    a = (d/2)*np.log(2*np.pi)
+    b = (1/2)*np.log(np.linalg.det(cov))
+    c = np.log(Pw)
+
+    return g-a-b+c 
+
 """
 def Multi_Gauss(x,cov,u,d):
     x = np.zeros(shape = [d,1])
@@ -85,28 +95,34 @@ def Multi_Gauss(x,cov,u,d):
     f = f * np.exp(np.negative(.5*(x-u).T*np.linalg.inv(cov)*(x-u)))
     return f
 """
+       
+sets = [ClsSet(class1, 0.6),ClsSet(class2, 0.2),ClsSet(class3, 0.2)] # list of the classes
 
-def get_mahala(x, y, cov, d):
-    S_inv = np.linalg.inv(cov)
-    a = np.dot((x-y).T,S_inv)
-    b = np.dot(a, (x-y))
-    return np.sqrt(b)
+for s in range(0,len(sets)): # creating covariance matrix and mean array
+    sets[s].get_cov_mat(sets[s])
+    sets[s].cls_mean(sets[s])
 
-tp1 = np.array([1,3,2])
-tp2 = np.array([4,6,1])
-tp3 = np.array([7,-1,0])
-tp4 = np.array([-2,6,5])
+""" # for verification
+set1.data.mean(axis = 0)
+set1.data.var(axis = 0)
+set1.data.cov()
+"""
 
-get_mahala(tp1,tp2,cov_mat1,0)
-    
-def discrim_funct(x,cov,u,Pw,d):  
-    f = np.dot((x-u).T,np.linalg.inv(cov))
-    g = (-1/2)*np.dot(f,(x-u))
-    a = (d/2)*np.log(2*np.pi)
-    b = (1/2)*np.log(np.linalg.det(cov))
-    c = np.log(Pw)
+tp = [np.array([1,3,2]), np.array([4,6,1]), np.array([7,-1,0]), np.array([-2,6,5])] #array of test points
 
-    return g-a-b-c
-      
+cls = [] #array that holds classifications
+for x in range(0,len(tp)):
+    cls.append(0)
+    for i in range(0,len(sets)):
+        if i == 0:
+            g0 = gi = discrim_funct(tp[x],sets[i].cov_mat,sets[i].mns,sets[i].prior,2) #init
+        else:
+            gi = discrim_funct(tp[x],sets[i].cov_mat,sets[i].mns,sets[i].prior,2)
+        
+        if gi > g0:
+            g0 = gi
+            cls[x] = i
+        
+print(cls)
     
     
