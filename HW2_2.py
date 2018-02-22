@@ -16,52 +16,52 @@ E = np.array([[4.1,0],[0,2.8]])
 Pw1 = .4
 Pw = [Pw1,Pw1/4]
 
-def discrim_funct(x,cov,u,Pw,d):
-    
-    g = (-1/2)*get_mahala(x,u,cov,d)
-    a = (d/2)*np.log(2*np.pi)
-    b = (1/2)*np.log(np.linalg.det(cov))
-    c = np.log(Pw)
-
-    return g-a-b+c 
-
-def get_mahala(x, y, cov, d):
-    S_inv = np.linalg.inv(cov)
-    a = np.dot((x - y) ,S_inv) * (x - y)
-    return a
-
 def Multi_Gauss(x,u,cov,d):
+    S_inv = np.linalg.inv(cov)
     p = 1.0/(math.pow(2*np.pi,d/2)*math.pow(np.linalg.det(cov),.5))
-    e =  np.power( math.e, -0.5*get_mahala(x,u,cov,d))
+    e =  np.power( math.e, -0.5*np.einsum('...k,kl,...l->...', x-u, S_inv, x-u))
     return e * p
 
 sample1 = np.zeros(shape=[1000,2])
 sample2 = np.zeros(shape=[1000,2])
 
-#sample = np.random.multivariate_normal(u[0],E,1000) #for testing
-
-for i in range(0,1000):
-    x = np.random.rand(1,2)*10
-    sample1[i] = Multi_Gauss(x,u[0],E,2)*100
-    sample2[i] = Multi_Gauss(x,u[1],E,2)*100
-    
+#for part b an c but did not get to
+"""
+def dec_bound(z,z2,eq):
+    if eq == 1:
+    else:
+"""
 
 #3D Plotting
-x, y = np.meshgrid(sample1[:,0],sample1[:,1])
+def plot_3d(cov, u, cov2, u2, d):
+    N = 1000
+    X = np.linspace(-20, 20, N)
+    Y = np.linspace(-20, 20, N)
+    X, Y = np.meshgrid(X, Y)
 
-pos = np.empty(x.shape + (2,))
-pos[:, :, 0] = x; pos[:, :, 1] = y
+    pos = np.empty(X.shape + (d,))
+    pos[:, :, 0] = X
+    pos[:, :, 1] = Y
 
+    z = Multi_Gauss(pos, u, cov, d)
+    #print (z)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    ax = fig.gca(projection='3d')
 
-z = multivariate_normal( mean=u[0], cov=E)
+    ax.plot_surface(X, Y, z,cmap='viridis',linewidth=0)
+    
+    z2 =  Multi_Gauss(pos, u2, cov2, d)
+    ax.plot_surface(X, Y, z2,cmap='viridis',linewidth=0)
 
+    plt.show()
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection = '3d')
+plot_3d(E, u[0], E, u[1], 2)
 
-ax = fig.gca(projection='3d')
+Ed = np.array([[4.1,0.4],[0.4,2.8]])
+    
+plot_3d(Ed, u[0], Ed, u[1], 2)
 
-ax.plot_surface(x, y, z.pdf(pos),cmap='viridis',linewidth=0)
-
-plt.show()
-
+Ee= np.array([[[2.1,1.5],[1.5,3.8]] ,[[4.1,0.4],[0.4,2.8]]])
+    
+plot_3d(Ee[0], u[0], Ee[1], u[1], 2)
